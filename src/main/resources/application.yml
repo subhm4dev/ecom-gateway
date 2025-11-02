@@ -1,0 +1,9 @@
+# Local fallback configuration if Config Server is unavailable
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.ecom: DEBUG
+
