@@ -1,3 +1,16 @@
+# Spring Cloud Config Client configuration
+spring:
+  application:
+    name: gateway
+  # Force reactive (WebFlux) mode for Gateway
+  main:
+    web-application-type: reactive
+  config:
+    import: optional:configserver:http://localhost:8888
+  cloud:
+    config:
+      fail-fast: false
+
 # Local fallback configuration if Config Server is unavailable
 server:
   port: 8080
