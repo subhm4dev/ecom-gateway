@@ -1,8 +1,7 @@
 package com.ecom.gateway.filter;
 
 import com.ecom.gateway.config.GatewayConfig;
-import com.ecom.gateway.service.JwtValidationService;
-import com.ecom.gateway.service.SessionService;
+import com.ecom.jwt.reactive.ReactiveJwtValidationService;
 import com.ecom.gateway.util.PublicPathMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +29,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     
-    private final JwtValidationService jwtValidationService;
-    private final SessionService sessionService;
+    private final ReactiveJwtValidationService jwtValidationService;
     private final PublicPathMatcher publicPathMatcher;
 
     public JwtAuthenticationFilter(
-            JwtValidationService jwtValidationService,
-            SessionService sessionService,
+            ReactiveJwtValidationService jwtValidationService,
             GatewayConfig gatewayConfig) {
         this.jwtValidationService = jwtValidationService;
-        this.sessionService = sessionService;
         this.publicPathMatcher = new PublicPathMatcher(gatewayConfig.getPublicPaths());
     }
 
@@ -63,42 +59,31 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         String token = authorization.substring(7); // Remove "Bearer " prefix
 
-        // 3. Extract token ID for blacklist check
-        String tokenId = jwtValidationService.extractTokenId(token);
+        // 3. Validate token (signature, expiry, blacklist)
+        // Note: Shared library handles blacklist check internally
+        return jwtValidationService.validateToken(token)
+            .flatMap(claims -> {
+                // 4. Extract user context
+                String userId = jwtValidationService.extractUserId(claims);
+                String tenantId = jwtValidationService.extractTenantId(claims);
+                List<String> roles = jwtValidationService.extractRoles(claims);
 
-        // 4. Check Redis blacklist (fast fail)
-        return sessionService.isTokenBlacklisted(tokenId)
-            .flatMap(blacklisted -> {
-                if (blacklisted) {
-                    log.warn("Token is blacklisted: tokenId={}, path={}", tokenId, path);
-                    return handleUnauthorized(exchange, "Token has been revoked");
-                }
+                log.debug("Token validated successfully: userId={}, tenantId={}, path={}", 
+                    userId, tenantId, path);
 
-                // 5. Validate token (signature, expiry)
-                return jwtValidationService.validateToken(token)
-                    .flatMap(claims -> {
-                        // 6. Extract user context
-                        String userId = jwtValidationService.extractUserId(claims);
-                        String tenantId = jwtValidationService.extractTenantId(claims);
-                        List<String> roles = jwtValidationService.extractRoles(claims);
+                // 5. Add headers for downstream services
+                ServerHttpRequest modifiedRequest = request.mutate()
+                    .header("X-User-Id", userId)
+                    .header("X-Tenant-Id", tenantId)
+                    .header("X-Roles", joinRoles(roles))
+                    .build();
 
-                        log.debug("Token validated successfully: userId={}, tenantId={}, path={}", 
-                            userId, tenantId, path);
-
-                        // 7. Add headers for downstream services
-                        ServerHttpRequest modifiedRequest = request.mutate()
-                            .header("X-User-Id", userId)
-                            .header("X-Tenant-Id", tenantId)
-                            .header("X-Roles", joinRoles(roles))
-                            .build();
-
-                        // 8. Continue with modified request
-                        return chain.filter(exchange.mutate().request(modifiedRequest).build());
-                    })
-                    .onErrorResume(IllegalArgumentException.class, error -> {
-                        log.warn("Token validation failed: path={}, error={}", path, error.getMessage());
-                        return handleUnauthorized(exchange, error.getMessage());
-                    });
+                // 6. Continue with modified request
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+            })
+            .onErrorResume(IllegalArgumentException.class, error -> {
+                log.warn("Token validation failed: path={}, error={}", path, error.getMessage());
+                return handleUnauthorized(exchange, error.getMessage());
             });
     }
 

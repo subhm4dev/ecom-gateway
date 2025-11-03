@@ -1,5 +1,6 @@
 package com.ecom.gateway.config;
 
+import com.ecom.jwt.config.JwtValidationProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,36 +12,24 @@ import java.util.List;
 /**
  * Gateway Configuration
  * 
- * <p>Configures WebClient for JWKS fetching and public paths.
+ * <p>Configures public paths and maps gateway.jwt properties to jwt-validation-starter properties.
+ * Note: jwt-validation-starter uses JwtValidationProperties with 'jwt' prefix,
+ * so we'll use application.yml with both prefixes for backward compatibility.
  */
 @Configuration
 @ConfigurationProperties(prefix = "gateway")
 public class GatewayConfig {
 
-    private JwtConfig jwt = new JwtConfig();
     private List<String> publicPaths = new ArrayList<>();
-
-    public static class JwtConfig {
-        private String identityServiceUrl = "http://localhost:8081";
-        private String jwksEndpoint = "/.well-known/jwks.json";
-        private long jwksCacheRefreshIntervalMs = 300000;
-
-        // Getters and setters
-        public String getIdentityServiceUrl() { return identityServiceUrl; }
-        public void setIdentityServiceUrl(String identityServiceUrl) { this.identityServiceUrl = identityServiceUrl; }
-        public String getJwksEndpoint() { return jwksEndpoint; }
-        public void setJwksEndpoint(String jwksEndpoint) { this.jwksEndpoint = jwksEndpoint; }
-        public long getJwksCacheRefreshIntervalMs() { return jwksCacheRefreshIntervalMs; }
-        public void setJwksCacheRefreshIntervalMs(long jwksCacheRefreshIntervalMs) { this.jwksCacheRefreshIntervalMs = jwksCacheRefreshIntervalMs; }
-    }
 
     /**
      * WebClient for fetching JWKS from Identity service
+     * Note: This is now primarily used by jwt-validation-starter's ReactiveJwksService
      */
     @Bean
-    public WebClient webClient() {
+    public WebClient webClient(JwtValidationProperties jwtProperties) {
         return WebClient.builder()
-            .baseUrl(jwt.getIdentityServiceUrl())
+            .baseUrl(jwtProperties.getIdentityServiceUrl())
             .codecs(configurer -> configurer
                 .defaultCodecs()
                 .maxInMemorySize(1024 * 1024)) // 1MB buffer for JWKS response
@@ -58,8 +47,6 @@ public class GatewayConfig {
     }
 
     // Getters and setters for @ConfigurationProperties
-    public JwtConfig getJwt() { return jwt; }
-    public void setJwt(JwtConfig jwt) { this.jwt = jwt; }
     public void setPublicPaths(List<String> publicPaths) { 
         this.publicPaths = publicPaths != null ? publicPaths : new ArrayList<>();
     }
