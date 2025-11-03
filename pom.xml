@@ -93,6 +93,28 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
     </dependency>
+    
+    <!-- JWT Library (Nimbus JOSE + JWT) for token validation -->
+    <!-- Version managed by ecom-bom -->
+    <dependency>
+      <groupId>com.nimbusds</groupId>
+      <artifactId>nimbus-jose-jwt</artifactId>
+    </dependency>
+    
+    <!-- Reactive Redis for token blacklisting (WebFlux compatible) -->
+    <!-- Version managed by ecom-bom -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+    </dependency>
+    
+    <!-- Lombok -->
+    <!-- Version managed by ecom-bom -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   
   <build>
