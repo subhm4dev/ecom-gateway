@@ -50,38 +50,41 @@ public class JwtValidationService {
                 return Mono.error(new IllegalArgumentException("JWT token missing Key ID (kid)"));
             }
             
-            // Get public key from JWKS cache
-            var publicKey = jwksService.getPublicKey(kid);
-            
-            // Verify signature
-            JWSVerifier verifier = new RSASSAVerifier(publicKey);
-            if (!signedJWT.verify(verifier)) {
-                return Mono.error(new IllegalArgumentException("Invalid JWT signature"));
-            }
-            
-            // Get claims
-            JWTClaimsSet claimsSet = signedJWT.getJWTClaimsSet();
-            
-            // Check expiry
-            Date expirationTime = claimsSet.getExpirationTime();
-            if (expirationTime != null && expirationTime.before(Date.from(Instant.now()))) {
-                return Mono.error(new IllegalArgumentException("JWT token has expired"));
-            }
-            
-            // Check issuer
-            String issuer = claimsSet.getIssuer();
-            if (issuer != null && !issuer.equals("ecom-identity")) {
-                log.warn("JWT token from unexpected issuer: {}", issuer);
-            }
-            
-            return Mono.just(claimsSet);
+            // Get public key from JWKS cache (reactive)
+            return jwksService.getPublicKey(kid)
+                .flatMap(publicKey -> {
+                    try {
+                        // Verify signature
+                        JWSVerifier verifier = new RSASSAVerifier(publicKey);
+                        if (!signedJWT.verify(verifier)) {
+                            return Mono.error(new IllegalArgumentException("Invalid JWT signature"));
+                        }
+                        
+                        // Get claims
+                        JWTClaimsSet claimsSet = signedJWT.getJWTClaimsSet();
+                        
+                        // Check expiry
+                        Date expirationTime = claimsSet.getExpirationTime();
+                        if (expirationTime != null && expirationTime.before(Date.from(Instant.now()))) {
+                            return Mono.error(new IllegalArgumentException("JWT token has expired"));
+                        }
+                        
+                        // Check issuer
+                        String issuer = claimsSet.getIssuer();
+                        if (issuer != null && !issuer.equals("ecom-identity")) {
+                            log.warn("JWT token from unexpected issuer: {}", issuer);
+                        }
+                        
+                        return Mono.just(claimsSet);
+                    } catch (JOSEException e) {
+                        log.error("JOSE error during token validation", e);
+                        return Mono.error(new IllegalArgumentException("JWT signature verification failed", e));
+                    }
+                });
             
         } catch (ParseException e) {
             log.error("Failed to parse JWT token", e);
             return Mono.error(new IllegalArgumentException("Invalid JWT token format", e));
-        } catch (JOSEException e) {
-            log.error("JOSE error during token validation", e);
-            return Mono.error(new IllegalArgumentException("JWT signature verification failed", e));
         } catch (Exception e) {
             log.error("Unexpected error during token validation", e);
             return Mono.error(new IllegalArgumentException("Token validation failed", e));

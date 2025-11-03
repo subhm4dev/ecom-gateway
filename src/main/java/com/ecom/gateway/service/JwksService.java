@@ -40,27 +40,34 @@ public class JwksService {
      * Get public key by Key ID (kid)
      * 
      * @param kid Key ID from JWT header
-     * @return RSA public key
+     * @return Mono<RSAKey> with the public key
      * @throws IllegalArgumentException if key not found
      */
-    public RSAKey getPublicKey(String kid) {
+    public Mono<RSAKey> getPublicKey(String kid) {
         RSAKey key = jwkCache.get(kid);
-        if (key == null) {
-            // Cache miss - refresh and try again
-            log.warn("JWK key not found in cache: kid={}, refreshing cache...", kid);
-            refreshJwksCache().block(Duration.ofSeconds(5));
-            key = jwkCache.get(kid);
-            if (key == null) {
-                throw new IllegalArgumentException("JWK key not found: " + kid);
-            }
+        if (key != null) {
+            return Mono.just(key);
         }
-        return key;
+        
+        // Cache miss - refresh and try again
+        log.warn("JWK key not found in cache: kid={}, refreshing cache...", kid);
+        return refreshJwksCache()
+            .then(Mono.fromCallable(() -> {
+                RSAKey refreshedKey = jwkCache.get(kid);
+                if (refreshedKey == null) {
+                    throw new IllegalArgumentException("JWK key not found after refresh: " + kid);
+                }
+                return refreshedKey;
+            }));
     }
 
     /**
      * Refresh JWKS cache from Identity service
+     * 
+     * Note: @Scheduled uses fixedDelay in milliseconds. 
+     * Configuration value should be in milliseconds (e.g., 300000 for 5 minutes)
      */
-    @Scheduled(fixedDelayString = "${gateway.jwt.jwks-cache-refresh-interval:PT5M}")
+    @Scheduled(fixedDelayString = "${gateway.jwt.jwks-cache-refresh-interval-ms:300000}")
     public Mono<Void> refreshJwksCache() {
         log.debug("Refreshing JWKS cache from Identity service...");
         
