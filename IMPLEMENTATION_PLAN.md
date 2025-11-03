@@ -114,7 +114,7 @@ The Gateway service is the **front door** to all microservices. It:
 ```
 
 **Public Paths** (skip validation):
-- `/api/auth/**` - Login, register, refresh, logout
+- `/api/v1/auth/**` - Login, register, refresh, logout
 - `/.well-known/jwks.json` - JWKS endpoint
 - `/actuator/**` - Health checks, metrics
 - `/swagger-ui/**`, `/v3/api-docs/**` - API documentation
@@ -237,10 +237,10 @@ Gateway adds these headers to downstream services:
 ### Public Endpoints (No Authentication Required)
 
 ```
-/api/auth/register
-/api/auth/login
-/api/auth/refresh
-/api/auth/logout          (Note: Requires token in Identity service, but Gateway doesn't block)
+/api/v1/auth/register
+/api/v1/auth/login
+/api/v1/auth/refresh
+/api/v1/auth/logout          (Note: Requires token in Identity service, but Gateway doesn't block)
 /.well-known/jwks.json
 /actuator/health
 /actuator/info
@@ -317,7 +317,7 @@ gateway:
     jwks-endpoint: /.well-known/jwks.json
     jwks-cache-refresh-interval: PT5M  # 5 minutes
   public-paths:
-    - /api/auth/**
+    - /api/v1/auth/**
     - /.well-known/**
     - /actuator/**
     - /swagger-ui/**

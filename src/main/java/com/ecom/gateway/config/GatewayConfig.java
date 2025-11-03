@@ -69,7 +69,7 @@ public class GatewayConfig {
      */
     private List<String> getDefaultPublicPaths() {
         return List.of(
-            "/api/auth/**",
+            "/api/v1/auth/**",
             "/.well-known/**",
             "/actuator/**",
             "/swagger-ui/**",

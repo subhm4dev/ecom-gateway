@@ -21,7 +21,7 @@ The Gateway service is the **central entry point** for all client requests. Curr
 
 ### 3. Public vs Protected Endpoints
 - ✅ **Public endpoints** - Allow without authentication:
-  - `/api/auth/**` (register, login, refresh, logout)
+  - `/api/v1/auth/**` (register, login, refresh, logout)
   - `/.well-known/jwks.json`
   - `/actuator/**`, `/swagger-ui/**`
 - ✅ **Protected endpoints** - Require valid JWT token:

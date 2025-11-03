@@ -73,7 +73,7 @@ curl http://localhost:8080/.well-known/jwks.json
 #### 2.2 Access Identity Service Auth Endpoints (via Gateway)
 ```bash
 # Register endpoint (will route to Identity service)
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -94,7 +94,7 @@ curl -X POST http://localhost:8080/api/auth/register \
 
 #### 3.1 Test Without Token
 ```bash
-curl http://localhost:8080/profile/v1/profile/me
+curl http://localhost:8080/api/v1/profile/me
 ```
 
 **Expected:** 
@@ -108,7 +108,7 @@ HTTP 401 Unauthorized
 
 #### 3.2 Test With Invalid Token
 ```bash
-curl http://localhost:8080/profile/v1/profile/me \
+curl http://localhost:8080/api/v1/profile/me \
   -H "Authorization: Bearer invalid-token-here"
 ```
 
@@ -124,7 +124,7 @@ HTTP 401 Unauthorized
 #### 3.3 Test With Expired Token
 ```bash
 # Use a token that has expired
-curl http://localhost:8080/profile/v1/profile/me \
+curl http://localhost:8080/api/v1/profile/me \
   -H "Authorization: Bearer <expired-token>"
 ```
 
@@ -143,7 +143,7 @@ HTTP 401 Unauthorized
 
 #### 4.1 Register User
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "testuser@example.com",
@@ -157,7 +157,7 @@ curl -X POST http://localhost:8080/api/auth/register \
 
 #### 4.2 Access Protected Endpoint With Valid Token
 ```bash
-curl http://localhost:8080/profile/v1/profile/me \
+curl http://localhost:8080/api/v1/profile/me \
   -H "Authorization: Bearer <token-from-register>"
 ```
 
@@ -170,7 +170,7 @@ curl http://localhost:8080/profile/v1/profile/me \
 #### 4.3 Test Logout (Blacklist Token)
 ```bash
 # First, get refresh token from login/register
-curl -X POST http://localhost:8080/api/auth/logout \
+curl -X POST http://localhost:8080/api/v1/auth/logout \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <access-token>" \
   -d '{
@@ -183,7 +183,7 @@ curl -X POST http://localhost:8080/api/auth/logout \
 #### 4.4 Test Blacklisted Token
 ```bash
 # Use the same token from step 4.2 (now blacklisted)
-curl http://localhost:8080/profile/v1/profile/me \
+curl http://localhost:8080/api/v1/profile/me \
   -H "Authorization: Bearer <blacklisted-token>"
 ```
 
@@ -280,7 +280,7 @@ curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:8080/profile/v1/prof
 
 # 3. Register user and get token
 echo -e "\nRegistering user..."
-RESPONSE=$(curl -s -X POST http://localhost:8080/api/auth/register \
+RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
