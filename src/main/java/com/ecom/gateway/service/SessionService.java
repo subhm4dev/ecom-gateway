@@ -1,7 +1,7 @@
 package com.ecom.gateway.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -13,11 +13,14 @@ import reactor.core.publisher.Mono;
  * Uses reactive Redis for WebFlux compatibility.
  */
 @Service
-@Slf4j
-@RequiredArgsConstructor
 public class SessionService {
 
+    private static final Logger log = LoggerFactory.getLogger(SessionService.class);
     private final ReactiveRedisTemplate<String, String> redisTemplate;
+
+    public SessionService(ReactiveRedisTemplate<String, String> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
     
     private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
 

@@ -4,7 +4,8 @@ import com.ecom.gateway.config.GatewayConfig;
 import com.ecom.gateway.service.JwtValidationService;
 import com.ecom.gateway.service.SessionService;
 import com.ecom.gateway.util.PublicPathMatcher;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -25,9 +26,10 @@ import java.util.StringJoiner;
  * Extracts user context and forwards it to downstream services via headers.
  */
 @Component
-@Slf4j
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    
     private final JwtValidationService jwtValidationService;
     private final SessionService sessionService;
     private final PublicPathMatcher publicPathMatcher;

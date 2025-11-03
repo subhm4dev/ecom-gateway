@@ -108,13 +108,7 @@
       <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
     </dependency>
     
-    <!-- Lombok -->
-    <!-- Version managed by ecom-bom -->
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <scope>provided</scope>
-    </dependency>
+    <!-- Lombok removed - using manual loggers due to Java 25 compatibility issues -->
   </dependencies>
   
   <build>
@@ -122,6 +116,14 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!-- Maven Compiler Plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>25</release>
+        </configuration>
       </plugin>
     </plugins>
   </build>

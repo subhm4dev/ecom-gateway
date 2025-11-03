@@ -3,8 +3,8 @@ package com.ecom.gateway.service;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -23,11 +23,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * Periodically refreshes keys to support key rotation.
  */
 @Service
-@Slf4j
-@RequiredArgsConstructor
 public class JwksService {
 
+    private static final Logger log = LoggerFactory.getLogger(JwksService.class);
     private final WebClient webClient;
+
+    public JwksService(WebClient webClient) {
+        this.webClient = webClient;
+    }
     
     private final Map<String, RSAKey> jwkCache = new ConcurrentHashMap<>();
     
