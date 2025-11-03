@@ -5,7 +5,6 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -30,16 +29,19 @@ public class JwksService {
     private static final Logger log = LoggerFactory.getLogger(JwksService.class);
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
+    private final com.ecom.gateway.config.GatewayConfig gatewayConfig;
 
-    public JwksService(WebClient webClient) {
+    public JwksService(WebClient webClient, com.ecom.gateway.config.GatewayConfig gatewayConfig) {
         this.webClient = webClient;
         this.objectMapper = new ObjectMapper();
+        this.gatewayConfig = gatewayConfig;
     }
     
     private final Map<String, RSAKey> jwkCache = new ConcurrentHashMap<>();
     
-    @Value("${gateway.jwt.jwks-endpoint:/.well-known/jwks.json}")
-    private String jwksEndpoint;
+    private String getJwksEndpoint() {
+        return gatewayConfig.getJwt().getJwksEndpoint();
+    }
     
     private volatile long lastFetchTime = 0;
 
@@ -79,7 +81,7 @@ public class JwksService {
         log.debug("Refreshing JWKS cache from Identity service...");
         
         return webClient.get()
-            .uri(jwksEndpoint)
+            .uri(getJwksEndpoint())
             .retrieve()
             .bodyToMono(String.class)
             .doOnNext(response -> {
