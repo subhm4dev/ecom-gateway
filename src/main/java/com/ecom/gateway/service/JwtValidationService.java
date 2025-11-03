@@ -82,6 +82,9 @@ public class JwtValidationService {
                     } catch (JOSEException e) {
                         log.error("JOSE error during token validation", e);
                         return Mono.error(new IllegalArgumentException("JWT signature verification failed", e));
+                    } catch (ParseException e) {
+                        log.error("Failed to parse JWT claims", e);
+                        return Mono.error(new IllegalArgumentException("Invalid JWT claims format", e));
                     }
                 });
 
@@ -102,6 +105,10 @@ public class JwtValidationService {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
             return signedJWT.getJWTClaimsSet().getJWTID();
+        } catch (ParseException e) {
+            log.error("Failed to parse token to extract token ID", e);
+            // Fallback: use token hash
+            return String.valueOf(token.hashCode());
         } catch (Exception e) {
             log.error("Failed to extract token ID", e);
             // Fallback: use token hash
