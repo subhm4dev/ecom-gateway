@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.Map;
@@ -27,9 +29,11 @@ public class JwksService {
 
     private static final Logger log = LoggerFactory.getLogger(JwksService.class);
     private final WebClient webClient;
+    private final ObjectMapper objectMapper;
 
     public JwksService(WebClient webClient) {
         this.webClient = webClient;
+        this.objectMapper = new ObjectMapper();
     }
     
     private final Map<String, RSAKey> jwkCache = new ConcurrentHashMap<>();
@@ -80,7 +84,11 @@ public class JwksService {
             .bodyToMono(String.class)
             .doOnNext(response -> {
                 try {
-                    JWKSet jwkSet = JWKSet.parse(response);
+                    // Identity service wraps JWKS in standard response format: {"success": true, "data": {"keys": [...]}}
+                    // Extract the "data" object which contains the actual JWKS
+                    String jwksJson = extractJwksFromResponse(response);
+                    
+                    JWKSet jwkSet = JWKSet.parse(jwksJson);
                     Map<String, RSAKey> newCache = new ConcurrentHashMap<>();
                     
                     for (JWK jwk : jwkSet.getKeys()) {
@@ -99,6 +107,8 @@ public class JwksService {
                     
                 } catch (ParseException e) {
                     log.error("Failed to parse JWKS response from Identity service", e);
+                } catch (Exception e) {
+                    log.error("Failed to process JWKS response from Identity service", e);
                 }
             })
             .doOnError(error -> {
@@ -115,6 +125,34 @@ public class JwksService {
     public void initializeCache() {
         log.info("Initializing JWKS cache...");
         refreshJwksCache().block(Duration.ofSeconds(10));
+    }
+
+    /**
+     * Extract JWKS JSON from Identity service's wrapped response
+     * 
+     * Identity service uses standard-response-starter which wraps responses as:
+     * {"success": true, "data": {"keys": [...]}, ...}
+     * 
+     * This method extracts just the "data" part which contains the actual JWKS.
+     */
+    private String extractJwksFromResponse(String response) throws Exception {
+        try {
+            JsonNode rootNode = objectMapper.readTree(response);
+            
+            // Check if response is wrapped in standard format
+            if (rootNode.has("data") && rootNode.get("data").has("keys")) {
+                // Extract just the "data" object which is the JWKS
+                JsonNode dataNode = rootNode.get("data");
+                return objectMapper.writeValueAsString(dataNode);
+            }
+            
+            // If not wrapped, assume it's already in JWKS format
+            return response;
+        } catch (Exception e) {
+            log.warn("Failed to parse response as JSON, assuming raw JWKS format: {}", e.getMessage());
+            // If parsing fails, assume it's already in raw JWKS format
+            return response;
+        }
     }
 
     /**
